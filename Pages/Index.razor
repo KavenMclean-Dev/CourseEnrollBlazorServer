@@ -1,82 +1,200 @@
 ﻿@page "/Index"
 @using Microsoft.AspNetCore.Identity
-@using System.ComponentModel.DataAnnotations
 @using CourseEnrollBlazorServer.Data
-
 @inject SignInManager<IdentityUser> SignInManager
-@inject NavigationManager NavigationManager 
-@inject CourseEnrollBlazorServer.Data.LoginModel logmod   
-@inject CourseEnrollBlazorServer.Data.Student student 
+@inject UserManager<IdentityUser> UserManager
+@inject NavigationManager NavigationManager
 
-<header>
-    <PageTitle>@logmod.</PageTitle>
-    <h2>Welcome Student @student.Name</h2>
-    <h3>Login Below</h3>
 
-</header>
-
-<body>
-    <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-
-        <div class="mb-3">
-            <label for="email" class="form-label">Email</label>
-            <InputText @bind-Value="loginModel.Email" class="form-control" id="email" />
-        </div>
-
-        <div class="mb-3">
-            <label for="password" class="form-label">Password</label>
-            <InputText @bind-Value="loginModel.Password" type="password" class="form-control" id="password" />
-        </div>
-
-        <div class="mb-3 form-check">
-            <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" id="rememberMe" />
-            <label class="form-check-label" for="rememberMe">Remember Me</label>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Login</button>
-
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="text-danger mt-2">@errorMessage</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-    </EditForm>
-</body>
 
-<script src="_framework/blazor.server.js"></script>
+        .login-container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 75%;
+            max-width: 75%;
+            overflow: hidden;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #4a6bdf 0%, #2a4aca 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .login-body {
+            padding: 10px;
+        }
+
+        .form-control {
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+            .form-control:focus {
+                border-color: #4a6bdf;
+                box-shadow: 0 0 0 0.25rem rgba(74, 107, 223, 0.25);
+            }
+
+        .btn-login {
+            background: linear-gradient(135deg, #4a6bdf 0%, #2a4aca 100%);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 420;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+            .btn-login:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(74, 107, 223, 0.4);
+            }
+
+        .alert {
+            border-radius: 8px;
+            padding: 12px 15px;
+        }
+
+        .form-check-input:checked {
+            background-color: #4a6bdf;
+            border-color: #4a6bdf;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+
+        .brand-icon {
+            background-color: white;
+            color: #4a6bdf;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="d-flex align-items-center justify-content-center">
+                <div class="brand-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h1 class="brand mb-0">EduEnroll</h1>
+            </div>
+            <p class="mt-3 mb-0">Student Course Enrollment System</p>
+        </div>
+
+        <div class="login-body">
+            <h3 class="text-center mb-4">Student Login</h3>
+
+            <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                        <InputText @bind-Value="loginModel.Email" class="form-control" id="email" placeholder="Enter your email" />
+                    </div>
+                    <ValidationMessage For="@(() => loginModel.Email)" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <InputText @bind-Value="loginModel.Password" type="password" class="form-control" id="password" placeholder="Enter your password" />
+                    </div>
+                    <ValidationMessage For="@(() => loginModel.Password)" />
+                </div>
+
+                <div class="mb-3 form-check">
+                    <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" id="rememberMe" />
+                    <label class="form-check-label" for="rememberMe">Remember Me</label>
+                </div>
+
+                <button type="submit" class="btn btn-login mb-3">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                </button>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger mt-3">
+                        <i class="fas fa-exclamation-circle me-2"></i>@errorMessage
+                    </div>
+                }
+            </EditForm>
+
+            <div class="text-center mt-4">
+                <p class="mb-2">Don't have an account? <a href="#" class="text-decoration-none">Register Now</a></p>
+                <p class="mb-0"><a href="#" class="text-decoration-none">Forgot Password?</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
 @code {
-    private LoginModel loginModel = new();
-    private string errorMessage;
+    private LoginModel loginModel = new LoginModel();
+    private string errorMessage = string.Empty;
 
     private async Task HandleLogin()
     {
-        var result = await SignInManager.PasswordSignInAsync(
-            loginModel.Email,
-            loginModel.Password,
-            loginModel.RememberMe,
-            lockoutOnFailure: false);
+        errorMessage = string.Empty;
 
-        if (result.Succeeded)
+        // Find user by email
+        var user = await UserManager.FindByEmailAsync(loginModel.Email);
+
+        if (user != null)
         {
-            NavigationManager.NavigateTo("/Courses"); // redirect after login
+            // Check if password is correct using SignInManager
+            var result = await SignInManager.PasswordSignInAsync(
+                user.UserName,
+                loginModel.Password,
+                loginModel.RememberMe,
+                lockoutOnFailure: false);
+
+            if (result.Succeeded)
+            {
+                NavigationManager.NavigateTo("/courses", forceLoad: true);
+            }
+            else
+            {
+                errorMessage = "Invalid password. Please try again.";
+            }
         }
         else
         {
-            errorMessage = "Invalid login attempt";
+            errorMessage = "No account found with this email address.";
         }
     }
-
-    //Moved to a separate file for clarity
-    // public class LoginModel
-    // {
-    //     [Required]
-    //     [EmailAddress]
-    //     public string Email { get; set; }
-
-    //     [Required]
-    //     public string Password { get; set; }
-
-    //     public bool RememberMe { get; set; }
-    // }
 }

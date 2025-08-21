@@ -13,55 +13,95 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<WeatherForecastService>();
 
+// Configure DbContext with Identity
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseInMemoryDatabase("SchoolDb").EnableSensitiveDataLogging()).AddAuthentication().AddIdentityCookies();
+    options.UseInMemoryDatabase("SchoolDb").EnableSensitiveDataLogging());
 
-//builder.Services.Add<IdentityUser>(options =>
-//{
-//    options.SignIn.RequireConfirmedAccount = false; // set to true if you want email confirmation
-//})
-//.AddEntityFrameworkStores<ApplicationDbContext>();
+// Register Identity services
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequiredLength = 6;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
+// Add authentication and authorization
+builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
 
-
+// Add UserManager and SignInManager services
+builder.Services.AddScoped<UserManager<IdentityUser>>();
+builder.Services.AddScoped<SignInManager<IdentityUser>>();
 
 var app = builder.Build();
 
+// Seed the database
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-    // Seed Courses
+    // Seed Courses with explicit IDs
     if (!db.Courses.Any())
     {
         db.Courses.AddRange(
-            new Course { CourseId = 1, Title = "Mathematics", Description = "Numbers, algebra, and calculus" },
-            new Course { CourseId = 2, Title = "Science and Space", Description = "Physics, chemistry, biology and astronomy" },
-            new Course { CourseId = 3, Title = "History of UK", Description = "World history and events" },
-            new Course { CourseId = 4, Title = "Literature", Description = "Fiction, modern drama" }
+            new Course
+            {
+                CourseId = 1,
+                Title = "Mathematics",
+                Description = "Numbers, algebra, and calculus"
+            },
+            new Course
+            {
+                CourseId = 2,
+                Title = "Science and Space",
+                Description = "Physics, chemistry, biology and astronomy"
+            },
+            new Course
+            {
+                CourseId = 3,
+                Title = "History of UK",
+                Description = "World history and events"
+            },
+            new Course
+            {
+                CourseId = 4,
+                Title = "Literature",
+                Description = "Fiction, modern drama"
+            }
         );
         db.SaveChanges();
     }
 
-    // Seed LoginModel
-    if (!db.LoginModel.Any())
-    {
-        db.LoginModel.AddRange(
-            new LoginModel { IntentityUserId = 1, Email = "aliceJ@school.com", Password = "Password123!", RememberMe = false },
-            new LoginModel { IntentityUserId = 2, Email = "bob@school.co.za", Password = "Password123!", RememberMe = false },
-            new LoginModel { IntentityUserId = 3, Email = "charliebrown@gmail.com", Password = "Password123!", RememberMe = false }
-        );
-        db.SaveChanges();
-    }
-
-    // Seed Students
+    // Seed Students with explicit IDs
     if (!db.Students.Any())
     {
         db.Students.AddRange(
-            new Student { StudentId = 1, IdentityUserId = 1, Name = "Alice Johnson", Email = "aliceJ@school.com" },
-            new Student { StudentId = 2, IdentityUserId = 2, Name = "Bob Smith", Email = "bob@school.co.za" },
-            new Student { StudentId = 3, IdentityUserId = 3, Name = "Charlie Brown", Email = "charliebrown@gmail.com" }
+            new Student
+            {
+                StudentId = 1,
+                Name = "Alice Johnson",
+                IdentityUserId = 1, // Assuming IdentityUserId is set to 1 for Alice
+                Email = "aliceJ@school.com"
+            },
+            new Student
+            {
+                StudentId = 2,
+                IdentityUserId = 2, // Assuming IdentityUserId is set to 1 for Alice
+                Name = "Bob Smith",
+                Email = "bob@school.co.za"
+            },
+            new Student
+            {
+                StudentId = 3,
+                IdentityUserId = 3, // Assuming IdentityUserId is set to 1 for Alice,
+                Name = "Charlie Brown",
+                Email = "charliebrown@gmail.com"
+            }
         );
         db.SaveChanges();
     }
@@ -70,29 +110,29 @@ using (var scope = app.Services.CreateScope())
     if (!db.Enrollments.Any())
     {
         db.Enrollments.AddRange(
-            new Enrollment { StudentId = 1, CourseId = 1 },
-            new Enrollment { StudentId = 1, CourseId = 2 },
-            new Enrollment { StudentId = 2, CourseId = 3 },
-            new Enrollment { StudentId = 3, CourseId = 4 }
+            new Enrollment { StudentId = 1, CourseId = 1 }, // Alice -> Mathematics
+            new Enrollment { StudentId = 1, CourseId = 2 }, // Alice -> Science
+            new Enrollment { StudentId = 2, CourseId = 3 }  // Bob -> History
         );
         db.SaveChanges();
     }
 }
 
-
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 
 app.UseRouting();
+
+// Add authentication and authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
