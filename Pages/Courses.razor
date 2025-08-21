@@ -1,0 +1,107 @@
+﻿@page "/courses"
+@using CourseEnrollBlazorServer.Data
+@inject ApplicationDbContext Db
+
+<h3>All Courses</h3>
+
+@if (allCourses == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <ul>
+        @foreach (var course in allCourses)
+        {
+            <li>
+                <b>@course.Title</b> - @course.Description
+                @if (IsEnrolled(course.CourseId))
+                {
+                    <button @onclick="() => Deregister(course.CourseId)">Deregister</button>
+                }
+                else
+                {
+                    <button @onclick="() => Enroll(course.CourseId)">Enroll</button>
+                }
+            </li>
+        }
+    </ul>
+}
+
+<h3>My Courses (@currentStudent?.Name)</h3>
+@if (myCourses == null || !myCourses.Any())
+{
+    <p>You are not enrolled in any courses yet.</p>
+}
+else 
+{
+    //Add more information about the courses
+    <ul>
+        /
+        @foreach (var course in myCourses)
+        {
+            <li>@course.Title</li>
+            <li>@course.Description</li>
+            <li> <p> Currently enrolled students :</p> @course.Enrollments.ToList()</li>
+        }
+    </ul>
+}
+
+
+Moved to a seperate file for clarity    
+
+@code {
+    // Current student - Still to implement authentication
+    private Student? currentStudent;
+
+    // Lists
+    private List<Course> allCourses = new();
+    private List<Course> myCourses = new();
+
+    protected override void OnInitialized()
+    {
+        // Hardcoded to Alice (StudentId = 1)
+        currentStudent = Db.Students.FirstOrDefault(s => s.StudentId == 1);
+        LoadData();
+    }
+
+    private void LoadData()
+    {
+        allCourses = Db.Courses.ToList();
+        myCourses = Db.Enrollments
+            .Where(e => e.StudentId == currentStudent!.StudentId)
+            .Select(e => e.Course)
+            .ToList();
+    }
+
+    private bool IsEnrolled(int courseId)
+    {
+        return myCourses.Any(c => c.CourseId == courseId);
+    }
+
+    private void Enroll(int courseId)
+    {
+        if (!IsEnrolled(courseId))
+        {
+            Db.Enrollments.Add(new Enrollment
+            {
+                StudentId = currentStudent!.StudentId,
+                CourseId = courseId
+            });
+            Db.SaveChanges();
+            LoadData();
+        }
+    }
+
+    private void Deregister(int courseId)
+    {
+        var enrollment = Db.Enrollments
+            .FirstOrDefault(e => e.StudentId == currentStudent!.StudentId && e.CourseId == courseId);
+        if (enrollment != null)
+        {
+            Db.Enrollments.Remove(enrollment);
+            Db.SaveChanges();
+            LoadData();
+        }
+    }
+}
