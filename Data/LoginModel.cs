@@ -6,8 +6,11 @@ namespace CourseEnrollBlazorServer.Data
 {
     public class LoginModel
     {
+        [Key]
+        public int IntentityUserId { get; set; }
         [Required]
         [EmailAddress]
+
         public string Email { get; set; }
 
         [Required]

@@ -1,7 +1,7 @@
 ﻿using CourseEnrollBlazorServer.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using CourseEnrollBlazorServer.Data;
+
 
 namespace SchoolApp.Controllers
 {

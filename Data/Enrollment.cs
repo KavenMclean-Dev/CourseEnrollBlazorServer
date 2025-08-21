@@ -6,6 +6,7 @@ namespace CourseEnrollBlazorServer.Data
 {
     public class Enrollment
     {
+        [Key]
         public int EnrollmentId { get; set; }
 
         [Required, ForeignKey(nameof(Student))]

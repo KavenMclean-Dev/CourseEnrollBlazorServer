@@ -1,77 +1,167 @@
 ﻿@page "/courses"
 @using CourseEnrollBlazorServer.Data
+@using Microsoft.EntityFrameworkCore
+@using global::CourseEnrollBlazorServer.Data
 @inject ApplicationDbContext Db
+@* //@inject IJSRuntime JSRuntime *@
 
-<h3>All Courses</h3>
-
-@if (allCourses == null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <ul>
-        @foreach (var course in allCourses)
+<!-- Toast Container -->
+<div aria-live="polite" aria-atomic="true" class="position-fixed" style="top: 20px; right: 20px; z-index: 1050;">
+    <div class="toast-container">
+        @if (showToast)
         {
-            <li>
-                <b>@course.Title</b> - @course.Description
-                @if (IsEnrolled(course.CourseId))
-                {
-                    <button @onclick="() => Deregister(course.CourseId)">Deregister</button>
-                }
-                else
-                {
-                    <button @onclick="() => Enroll(course.CourseId)">Enroll</button>
-                }
-            </li>
+            <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header @toastHeaderClass">
+                    <strong class="me-auto">@toastTitle</strong>
+                    <button type="button" class="btn-close" @onclick="HideToast"></button>
+                </div>
+                <div class="toast-body">
+                    @toastMessage
+                </div>
+            </div>
         }
-    </ul>
-}
+    </div>
+</div>
 
-<h3>My Courses (@currentStudent?.Name)</h3>
-@if (myCourses == null || !myCourses.Any())
-{
-    <p>You are not enrolled in any courses yet.</p>
-}
-else 
-{
-    //Add more information about the courses
-    <ul>
-        /
-        @foreach (var course in myCourses)
-        {
-            <li>@course.Title</li>
-            <li>@course.Description</li>
-            <li> <p> Currently enrolled students :</p> @course.Enrollments.ToList()</li>
-        }
-    </ul>
-}
+<div class="container mt-4">
+    <h3 class="mb-4">All Courses</h3>
 
-
-Moved to a seperate file for clarity    
-
-@code {
-    // Current student - Still to implement authentication
-    private Student? currentStudent;
-
-    // Lists
-    private List<Course> allCourses = new();
-    private List<Course> myCourses = new();
-
-    protected override void OnInitialized()
+    @if (isLoading)
     {
-        // Hardcoded to Alice (StudentId = 1)
-        currentStudent = Db.Students.FirstOrDefault(s => s.StudentId == 1);
-        LoadData();
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading courses...</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var course in allCourses)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">@course.Title</h5>
+                            <p class="card-text">@course.Description</p>
+                            <p class="text-muted">
+                                <small>Enrolled: @(course.Enrollments?.Count ?? 0) students</small>
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            @if (IsEnrolled(course.CourseId))
+                            {
+                                <button class="btn btn-outline-danger w-100"
+                                        @onclick="() => Deregister(course.CourseId)">
+                                    <i class="fas fa-times-circle me-2"></i>Deregister
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-outline-primary w-100"
+                                        @onclick="() => Enroll(course.CourseId)">
+                                    <i class="fas fa-plus-circle me-2"></i>Enroll
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
     }
 
-    private void LoadData()
+    <h3 class="mb-4 mt-5">My Courses</h3>
+    @if (currentStudent != null)
     {
-        allCourses = Db.Courses.ToList();
-        myCourses = Db.Enrollments
-            .Where(e => e.StudentId == currentStudent!.StudentId)
-            .Select(e => e.Course)
-            .ToList();
+        <div class="alert alert-info">
+            <strong>Student:</strong> @currentStudent.Name
+        </div>
+    }
+
+    @if (myCourses == null || !myCourses.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            You are not enrolled in any courses yet.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var course in myCourses)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">Enrolled</h6>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">@course.Title</h5>
+                            <p class="card-text">@course.Description</p>
+                            <p class="text-muted">
+                                <small>Total enrolled: @(course.Enrollments?.Count ?? 0) students</small>
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <button class="btn btn-outline-danger w-100"
+                                    @onclick="() => Deregister(course.CourseId)">
+                                <i class="fas fa-user-minus me-2"></i>Drop Course
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private Student? currentStudent;
+    private List<Course> allCourses = new();
+    private List<Course> myCourses = new();
+    private bool isLoading = true;
+
+    // Toast message variables
+    private bool showToast = false;
+    private string toastTitle = "";
+    private string toastMessage = "";
+    private string toastHeaderClass = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // TODO: Replace with actual authentication
+            currentStudent = await Db.Students.FirstOrDefaultAsync(s => s.StudentId == 1);
+            await LoadDataAsync();
+            await ShowToastAsync("Success", "Courses loaded successfully!", "bg-success");
+        }
+        catch (Exception ex)
+        {
+            await ShowToastAsync("Error", $"Error loading data: {ex.Message}", "bg-danger");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        allCourses = await Db.Courses
+            .Include(c => c.Enrollments)
+            .ToListAsync();
+
+        if (currentStudent != null)
+        {
+            myCourses = await Db.Enrollments
+                .Where(e => e.StudentId == currentStudent.StudentId)
+                .Include(e => e.Course)
+                .ThenInclude(c => c.Enrollments)
+                .Select(e => e.Course)
+                .ToListAsync();
+        }
     }
 
     private bool IsEnrolled(int courseId)
@@ -79,29 +169,82 @@ Moved to a seperate file for clarity
         return myCourses.Any(c => c.CourseId == courseId);
     }
 
-    private void Enroll(int courseId)
+    private async Task Enroll(int courseId)
     {
-        if (!IsEnrolled(courseId))
+        if (currentStudent == null || IsEnrolled(courseId))
+            return;
+
+        try
         {
-            Db.Enrollments.Add(new Enrollment
+            var enrollment = new Enrollment
             {
-                StudentId = currentStudent!.StudentId,
-                CourseId = courseId
-            });
-            Db.SaveChanges();
-            LoadData();
+                StudentId = currentStudent.StudentId,
+                CourseId = courseId,
+
+            };
+
+            Db.Enrollments.Add(enrollment);
+            await Db.SaveChangesAsync();
+
+            // Update local state
+            var enrolledCourse = allCourses.FirstOrDefault(c => c.CourseId == courseId);
+            if (enrolledCourse != null)
+            {
+                myCourses.Add(enrolledCourse);
+            }
+
+            await ShowToastAsync("Success", "Successfully enrolled in the course!", "bg-success");
+        }
+        catch (Exception ex)
+        {
+            await ShowToastAsync("Error", $"Error enrolling: {ex.Message}", "bg-danger");
         }
     }
 
-    private void Deregister(int courseId)
+    private async Task Deregister(int courseId)
     {
-        var enrollment = Db.Enrollments
-            .FirstOrDefault(e => e.StudentId == currentStudent!.StudentId && e.CourseId == courseId);
-        if (enrollment != null)
+        if (currentStudent == null)
+            return;
+
+        try
         {
-            Db.Enrollments.Remove(enrollment);
-            Db.SaveChanges();
-            LoadData();
+            var enrollment = await Db.Enrollments
+                .FirstOrDefaultAsync(e => e.StudentId == currentStudent.StudentId && e.CourseId == courseId);
+
+            if (enrollment != null)
+            {
+                Db.Enrollments.Remove(enrollment);
+                await Db.SaveChangesAsync();
+
+                // Update local state
+                myCourses.RemoveAll(c => c.CourseId == courseId);
+
+                await ShowToastAsync("Success", "Successfully dropped the course!", "bg-info");
+            }
         }
+        catch (Exception ex)
+        {
+            await ShowToastAsync("Error", $"Error dropping course: {ex.Message}", "bg-danger");
+        }
+    }
+
+    private async Task ShowToastAsync(string title, string message, string headerClass = "bg-primary")
+    {
+        toastTitle = title;
+        toastMessage = message;
+        toastHeaderClass = headerClass;
+        showToast = true;
+
+        StateHasChanged();
+
+        // Auto-hide toast after 5 seconds
+        await Task.Delay(5000);
+        HideToast();
+    }
+
+    private void HideToast()
+    {
+        showToast = false;
+        StateHasChanged();
     }
 }

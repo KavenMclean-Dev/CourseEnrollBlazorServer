@@ -10,7 +10,7 @@ namespace CourseEnrollBlazorServer.Data
         [Key, Required]
         public int StudentId { get; set; }
         [Required]
-        [ForeignKey(nameof(IdentityUser))]
+        [ForeignKey(nameof(LoginModel))]
         public int IdentityUserId { get; set; }
 
         [Required]
