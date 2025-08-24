@@ -13,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseInMemoryDatabase("SchoolDb").EnableSensitiveDataLogging());
 
-// Add Identity (with Roles support if needed)
+// Add Identity
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
@@ -21,20 +21,18 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
     options.Password.RequireLowercase = false;
-    options.SignIn.RequireConfirmedAccount = false; // optional
+    options.SignIn.RequireConfirmedAccount = false;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders(); // required for email/password resets etc.
+.AddDefaultTokenProviders();
 
 // Razor Pages & Blazor
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddSingleton<WeatherForecastService>();
 
-// Authentication & Authorization
+// Custom Authentication
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthentication>();
-builder.Services.AddScoped<CustomAuthentication>(); 
-builder.Services.AddAuthentication();
+builder.Services.AddScoped<CustomAuthentication>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddAuthorization();
 
@@ -46,7 +44,6 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
 
-    // Seed Courses
     if (!db.Courses.Any())
     {
         db.Courses.AddRange(
@@ -58,35 +55,13 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
     }
 
-    // Seed Students + IdentityUsers
-    if (!db.Students.Any())
-    {
-        var aliceUser = new IdentityUser { UserName = "aliceJ@school.com", Email = "aliceJ@school.com" };
-        await userManager.CreateAsync(aliceUser, "Password123!");
-
-        var bobUser = new IdentityUser { UserName = "bob@school.co.za", Email = "bob@school.co.za" };
-        await userManager.CreateAsync(bobUser, "Password123!");
-
-        var charlieUser = new IdentityUser { UserName = "charliebrown@gmail.com", Email = "charliebrown@gmail.com" };
-        await userManager.CreateAsync(charlieUser, "Password123!");
-
-        db.Students.AddRange(
-            new Student { StudentId = 1, Name = "Alice Johnson", Email = "aliceJ@school.com", IdentityUserId = aliceUser.Id },
-            new Student { StudentId = 2, Name = "Bob Smith", Email = "bob@school.co.za", IdentityUserId = bobUser.Id },
-            new Student { StudentId = 3, Name = "Charlie Brown", Email = "charliebrown@gmail.com", IdentityUserId = charlieUser.Id }
-        );
-
-        db.SaveChanges();
-    }
-
-    // Seed Enrollments
     if (!db.Enrollments.Any())
     {
         db.Enrollments.AddRange(
-            new Enrollment { StudentId = 1, CourseId = 1 }, // Alice -> Mathematics
-            new Enrollment { StudentId = 1, CourseId = 2 }, // Alice -> Science
-            new Enrollment { StudentId = 2, CourseId = 3 }, // Bob -> History
-            new Enrollment { StudentId = 3, CourseId = 4 }  // Charlie -> Literature
+            new Enrollment { StudentId = 1, CourseId = 1 },
+            new Enrollment { StudentId = 1, CourseId = 2 },
+            new Enrollment { StudentId = 2, CourseId = 3 },
+            new Enrollment { StudentId = 3, CourseId = 4 }
         );
         db.SaveChanges();
     }
@@ -104,11 +79,17 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// ? Must come before MapBlazorHub
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+app.MapFallbackToPage("/_Host"); // Only one fallback
+
+// Redirect root ("/") to login
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/login");
+    return Task.CompletedTask;
+});
 
 app.Run();

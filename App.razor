@@ -3,15 +3,7 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
-                    @* Redirect to login if not authorized *@
-                    @code {
-                        protected override void OnParametersSet()
-                        {
-                            Navigation.NavigateTo("/login", forceLoad: true);
-                        }
-
-                        [Inject] private NavigationManager Navigation { get; set; } = default!;
-                    }
+                    <RedirectToLogin />
                 </NotAuthorized>
             </AuthorizeRouteView>
         </Found>

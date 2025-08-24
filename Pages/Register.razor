@@ -122,11 +122,11 @@
             // 3. Optionally, log the user in automatically
             await AuthStateProvider.LoginAsync(registerModel.Email, registerModel.Password);
 
-            SuccessMessage = "Registration successful! Redirecting to courses...";
+            SuccessMessage = "Registration successful!" + " Weclome " + student.Name + "\nPlease Login to see your enrolled courses";
             StateHasChanged();
 
             await Task.Delay(1500);
-            NavigationManager.NavigateTo("/courses");
+            NavigationManager.NavigateTo("/login");
         }
         catch (Exception ex)
         {
