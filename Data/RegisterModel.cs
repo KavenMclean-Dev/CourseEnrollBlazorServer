@@ -1,0 +1,21 @@
+﻿using CourseEnrollBlazorServer.Data;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CourseEnrollBlazorServer.Data
+{
+    //public class LoginModel
+    //{
+    //    [Key]
+    //    public int IntentityUserId { get; set; }
+    //    [Required]
+    //    [EmailAddress]
+
+    //    public string Email { get; set; }
+
+    //    [Required]
+    //    public string Password { get; set; }
+
+    //    public bool RememberMe { get; set; }
+    //}
+}
